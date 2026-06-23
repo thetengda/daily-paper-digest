@@ -1,0 +1,40 @@
+name: Daily Literature Digest
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily digest
+        run: python src/main.py
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          IEEE_API_KEY: ${{ secrets.IEEE_API_KEY }}
+
+      - name: Commit and push results
+        run: |
+          git config user.name "daily-digest-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: daily digest $(date +'%Y-%m-%d')"
+            git push
+          fi
